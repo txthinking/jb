@@ -161,7 +161,7 @@ var bin = which('brook')
 
 Copy file or http file from zip/tar.gz/tar.xz to local
 
-```
+```js
 cp('https://github.com/txthinking/brook/releases/latest/download/brook_darwin_arm64', '/tmp/brook');
 ```
 
