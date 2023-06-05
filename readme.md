@@ -157,6 +157,15 @@ File path or null
 ```js
 var bin = which('brook')
 ```
+
+### `exit()`
+
+Exit the script
+
+```js
+exit()
+```
+
 ### `cp()`
 
 Copy file or http file from zip/tar.gz/tar.xz to local

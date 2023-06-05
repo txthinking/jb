@@ -8,6 +8,7 @@ global.echo = console.log;
 global.question = prompt;
 global.sleep = Bun.sleepSync;
 global.which = Bun.which;
+global.exit = process.exit;
 global.now = () => {
     return parseInt(Date.now() / 1000);
 };
@@ -170,24 +171,39 @@ global.nami = {
     tmp_dir: path.join(os.homedir(), '.nami', 'tmp'),
 };
 
-if(process.argv.length <= 2){
+var main = async () => {
     var s = '$`ls -l`';
-    echo(`
+    var help = `
+jb = javascript + bash
+
 $ jb /path/to/file.js
 $ jb https://example.com/file.js
 $ jb '${s}'
-`);
-}
-if(process.argv.length > 2){
+
+v20230606
+
+https://github.com/txthinking/jb
+`;
+    if(process.argv.length <= 2){
+        echo(help);
+        return;
+    }
     var a = process.argv[2];
+    if(a == "help" || a == "--help" || a == "-h" || a == "version" || a == "--version" || a == "-v"){
+        echo(help);
+        return;
+    }
     if(a.startsWith('http://') || a.startsWith('https://')){
         cp(a, '/tmp/_.js');
         await import(Bun.resolveSync('/tmp/_.js', process.cwd()));
-    }else if(fs.existsSync(a)){
-        await import(Bun.resolveSync(a, process.cwd()));
-    }else{
-        await writefile('/tmp/_.js', a);
-        await import(Bun.resolveSync('/tmp/_.js', process.cwd()));
+        return;
     }
+    if(fs.existsSync(a)){
+        await import(Bun.resolveSync(a, process.cwd()));
+        return;
+    }
+    await writefile('/tmp/_.js', a);
+    await import(Bun.resolveSync('/tmp/_.js', process.cwd()));
 }
 
+await main();
