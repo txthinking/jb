@@ -247,7 +247,15 @@ var str = await readfile('path/to/file.txt')
 Write text to local file
 
 ```js
-var str = await writefile('path/to/file.txt', 'some text')
+await writefile('path/to/file.txt', 'some text')
+```
+
+### `appendfile()`
+
+Append text to local file
+
+```js
+await appendfile('path/to/file.txt', 'some text')
 ```
 
 ### `stdin()`
@@ -270,6 +278,14 @@ var s = await retry(() => $1`curl https://www.txthinking.com`, 1000)
 
 // delay 1s and max 3 times
 var s = await retry(() => $1`curl https://www.txthinking.com`, 1000, 3)
+```
+
+### All [bun](https://github.com/oven-sh/bun) api without `package.json` and zero-configuration
+
+```js
+import os from 'node:os';
+
+echo(os.homedir());
 ```
 
 ### Executing commands on remote hosts

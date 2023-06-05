@@ -1,7 +1,8 @@
 import path from "node:path";
 import fs from 'node:fs';
+import os from 'node:os';
 
-var _cwd = __dirname;
+var _cwd = process.cwd();
 var _env = null;
 global.echo = console.log;
 global.question = prompt;
@@ -20,7 +21,6 @@ global.cd = (dir) => {
     }
     _cwd = path.join(_cwd, dir);
 };
-
 global.$ = (first) => {
     var cmd = first instanceof Array ? first[0] : first;
     echo(cmd);
@@ -75,6 +75,10 @@ global.readfile = async (file) => {
 };
 global.writefile = async (file, text) => {
     return await Bun.write(file, text);
+};
+// TODO replace me
+global.appendfile = async (file, text) => {
+    return await Bun.write(file, (await readfile(file)) + text);
 };
 global.stdin = async () => {
     var reader = await Bun.stdin.stream().getReader();
@@ -155,6 +159,17 @@ global.cp = (from, a, b) => {
     });
 };
 
+// for https://github.com/txthinking/nami
+global.nami = {
+    os: os.platform(),
+    arch: os.arch() == 'x64' ? 'amd64' : os.arch(),
+    home_dir: os.homedir(),
+    bin_dir: path.join(os.homedir(), '.nami', 'bin'),
+    cache_dir: path.join(os.homedir(), '.nami', 'cache'),
+    copied_dir: path.join(os.homedir(), '.nami', 'copied'),
+    tmp_dir: path.join(os.homedir(), '.nami', 'tmp'),
+};
+
 if(process.argv.length <= 2){
     var s = '$`ls -l`';
     echo(`
@@ -169,7 +184,7 @@ if(process.argv.length > 2){
         cp(a, '/tmp/_.js');
         await import('/tmp/_.js');
     }else if(fs.existsSync(a)){
-        await import(a);
+        await import(Bun.resolveSync(a, process.cwd()));
     }else{
         await writefile('/tmp/_.js', a);
         await import('/tmp/_.js');
