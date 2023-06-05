@@ -182,12 +182,12 @@ if(process.argv.length > 2){
     var a = process.argv[2];
     if(a.startsWith('http://') || a.startsWith('https://')){
         cp(a, '/tmp/_.js');
-        await import('/tmp/_.js');
+        await import(Bun.resolveSync('/tmp/_.js', process.cwd()));
     }else if(fs.existsSync(a)){
         await import(Bun.resolveSync(a, process.cwd()));
     }else{
         await writefile('/tmp/_.js', a);
-        await import('/tmp/_.js');
+        await import(Bun.resolveSync('/tmp/_.js', process.cwd()));
     }
 }
 
