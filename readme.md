@@ -75,14 +75,10 @@ var flags = [
 $(`ls ${flags.join(' ')}`)
 ```
 
-If the executed program failed, stderr will be thrown.
+If the executed program failed, error will be thrown.
 
 ```js
-try {
-  $`brook unknownsubcommand`
-} catch (e) {
-  console.log(`Error: ${e}`)
-}
+$`brook unknownsubcommand`
 ```
 
 ### ``$1`command` ``
@@ -101,9 +97,7 @@ $(`echo ${count}`)
 Set env
 
 ```js
-env({
-    HELLO: "JB",
-})
+env('HELLO', "JB")
 $`echo $HELLO` // => JB
 ```
 

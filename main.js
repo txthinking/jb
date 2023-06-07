@@ -2,8 +2,10 @@ import path from "node:path";
 import fs from 'node:fs';
 import os from 'node:os';
 
+// Welcome PR, translate to english if need: https://www.txthinking.com/talks/articles/coding-principle.article
+
 var _cwd = process.cwd();
-var _env = null;
+var _env = {};
 global.echo = console.log;
 global.question = prompt;
 global.sleep = Bun.sleepSync;
@@ -12,8 +14,12 @@ global.exit = process.exit;
 global.now = () => {
     return parseInt(Date.now() / 1000);
 };
-global.env = (kv) => {
-    _env = kv;
+global.env = (k, v) => {
+    if(typeof k == 'string'){
+        _env[k] = v;
+        return
+    }
+    _env = {...env, ...k};
 };
 global.cd = (dir) => {
     if(path.isAbsolute(dir)){
@@ -25,13 +31,9 @@ global.cd = (dir) => {
 global.$ = (first) => {
     var cmd = first instanceof Array ? first[0] : first;
     echo(cmd);
-    var e = process.env;
-    if(_env){
-        e = {...e, ..._env};
-    }
     var p = Bun.spawnSync(["sh", "-c", cmd], {
         cwd: _cwd,
-        env: e,
+        env: {...process.env, ..._env},
         stdin: null,
         stdout: Bun.stdout,
         stderr: Bun.stderr,
@@ -43,13 +45,9 @@ global.$ = (first) => {
 global.$1 = (first) => {
     var cmd = first instanceof Array ? first[0] : first;
     echo(cmd);
-    var e = process.env;
-    if(_env){
-        e = {...e, ..._env};
-    }
     var p = Bun.spawnSync(["sh", "-c", cmd], {
         cwd: _cwd,
-        env: e,
+        env: {...process.env, ..._env},
         stdin: null,
         stdout: 'pipe',
         stderr: Bun.stderr,
@@ -121,7 +119,7 @@ global.cp = (from, a, b) => {
     var out = "";
     if(from.endsWith(".zip")){
         out = "_.zip";
-        if(!which("ls")){
+        if(!which("7z")){
             throw 'need 7z, recommend $ nami install 7z';
         }
     }
@@ -180,7 +178,7 @@ $ jb /path/to/file.js
 $ jb https://example.com/file.js
 $ jb '${s}'
 
-v20230606
+v20230607
 
 https://github.com/txthinking/jb
 `;
