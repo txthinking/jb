@@ -44,7 +44,6 @@ global.$ = (first) => {
 };
 global.$1 = (first) => {
     var cmd = first instanceof Array ? first[0] : first;
-    echo(cmd);
     var p = Bun.spawnSync(["sh", "-c", cmd], {
         cwd: _cwd,
         env: {...process.env, ..._env},
@@ -178,7 +177,7 @@ $ jb /path/to/file.js
 $ jb https://example.com/file.js
 $ jb '${s}'
 
-v20230607
+v20230822
 
 https://github.com/txthinking/jb
 `;
