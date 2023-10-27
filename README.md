@@ -286,11 +286,12 @@ var s = await retry(() => $1`curl https://www.txthinking.com`, 1000, 3)
 ### built-in [node](https://nodejs.org/api/)
 
 ```js
-var { os } = node
+import os from 'node:os';
+
 echo(os.homedir());
 ```
 
-### All bun [api](https://bun.sh/docs/api/http)
+### built-in [bun](https://bun.sh/docs/api/http)
 
 ```js
 Bun.serve({
