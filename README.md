@@ -323,6 +323,5 @@ $`sshexec -s 1.2.3.4:22 -u user -k path/to/private/key --upload /local/path/to/f
 
 ## License
 
-[MIT](LICENSE)
-
+jb itself is [MIT-licensed](LICENSE). Refer to the [dependencies license](https://bun.sh/docs/project/licensing) for information.
 
