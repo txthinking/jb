@@ -1,0 +1,11 @@
+on: workflow_dispatch
+jobs:
+  fuckyaml:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./build_darwin.sh
+      - uses: actions/upload-artifact@v3
+        with:
+          name: out
+          path: ./packages/bun-darwin-x64/bun
