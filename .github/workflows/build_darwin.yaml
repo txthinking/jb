@@ -7,5 +7,5 @@ jobs:
       - run: ./build_darwin.sh
       - uses: actions/upload-artifact@v3
         with:
-          name: out
+          name: jb_darwin_amd64
           path: ./packages/bun-darwin-x64/bun
