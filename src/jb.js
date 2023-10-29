@@ -1,6 +1,7 @@
 // TODO embed runtime?
 import jb_os from 'node:os';
 import jb_path from 'node:path';
+import jb_fs from 'node:fs';
 
 var jb_cwd = process.cwd();
 var jb_env = {};
@@ -99,28 +100,30 @@ global.cp = (from, a, b) => {
         $(`cp "/tmp/_/${v}" "${a[v]}"`)
     });
 };
+global.exists = (file) => {
+    return jb_fs.existsSync(file);
+};
+global.read_file = (file) => {
+    return jb_fs.readFileSync(file, { encoding: "utf8" });
+};
+global.write_file = (file, text) => {
+    return jb_fs.writeFileSync(file, text, { encoding: "utf8" });
+};
+global.append_file = (file, text) => {
+    return jb_fs.writeFileSync(file, text, { encoding: "utf8", flag: 'a' });
+};
 
 // async
 
-global.readurl = async (url) => {
+global.read_url = async (url) => {
     var res = await fetch(url);
     if (!res.ok) {
         throw res.status + ": " + (await res.text());
     }
     return await res.text();
 };
-global.readfile = async (file) => {
-    return await Bun.file(file).text();
-};
-global.writefile = async (file, text) => {
-    return await Bun.write(file, text);
-};
-// TODO replace me
-global.appendfile = async (file, text) => {
-    return await Bun.write(file, (await readfile(file)) + text);
-};
 global.stdin = async () => {
-    var reader = await Bun.stdin.stream().getReader();
+    var reader = (await Bun.stdin.stream()).getReader();
     var l = [];
     for (; true;) {
         var { done, value } = await reader.read();
@@ -154,6 +157,25 @@ global.retry = async (f, delay, times) => {
             throw e;
         }
     }
+};
+
+// deprecated
+
+global.readfile = async (file) => {
+    return await Bun.file(file).text();
+};
+global.writefile = async (file, text) => {
+    return await Bun.write(file, text);
+};
+global.appendfile = async (file, text) => {
+    return await Bun.write(file, (await readfile(file)) + text);
+};
+global.readurl = async (url) => {
+    var res = await fetch(url);
+    if (!res.ok) {
+        throw res.status + ": " + (await res.text());
+    }
+    return await res.text();
 };
 
 // for https://github.com/txthinking/nami

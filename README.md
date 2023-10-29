@@ -90,8 +90,6 @@ var count = $1`ls -l | wc -l`
 $(`echo ${count}`)
 ```
 
-## Sync Functions
-
 ### `env()`
 
 Set env
@@ -160,6 +158,30 @@ Exit the script
 exit()
 ```
 
+### `read_file()`
+
+Read the text from local file
+
+```js
+var str = read_file('path/to/file.txt')
+```
+
+### `write_file()`
+
+Write text to local file
+
+```js
+write_file('path/to/file.txt', 'some text')
+```
+
+### `append_file()`
+
+Append text to local file
+
+```js
+append_file('path/to/file.txt', 'some text')
+```
+
 ### `cp()`
 
 Copy file or http file from zip/tar.gz/tar.xz to local
@@ -221,52 +243,16 @@ cp('https://github.com/shadowsocks/shadowsocks-rust/releases/latest/download/sha
 
 ## Async Functions
 
-### `fetch()`
-
-A wrapper around the [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) package.
-
-```js
-var res = await fetch('https://www.txthinking.com')
-```
-
-### `readurl()`
-
-Read the body from http url
-
-```js
-var str = await readurl('https://www.txthinking.com')
-```
-
-### `readfile()`
-
-Read the text from local file
-
-```js
-var str = await readfile('path/to/file.txt')
-```
-
-### `writefile()`
-
-Write text to local file
-
-```js
-await writefile('path/to/file.txt', 'some text')
-```
-
-### `appendfile()`
-
-Append text to local file
-
-```js
-await appendfile('path/to/file.txt', 'some text')
-```
-
 ### `stdin()`
 
 Returns the stdin as a string.
 
 ```js
-var content = await stdin()
+var s = await stdin()
+echo(`Got ${s} from pipe`);
+```
+```
+$ echo hello | jb ./script.js
 ```
 
 ### `retry()`
@@ -281,6 +267,22 @@ var s = await retry(() => $1`curl https://www.txthinking.com`, 1000)
 
 // delay 1s and max 3 times
 var s = await retry(() => $1`curl https://www.txthinking.com`, 1000, 3)
+```
+
+### `read_url()`
+
+Read the body from http url
+
+```js
+var str = await read_url('https://www.txthinking.com')
+```
+
+### built-in [Web API](https://developer.mozilla.org/en-US/docs/Web/API) such as [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
+
+```js
+import os from 'node:os';
+
+echo(os.homedir());
 ```
 
 ### built-in [node](https://nodejs.org/api/)

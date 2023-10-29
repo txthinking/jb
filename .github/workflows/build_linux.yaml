@@ -1,0 +1,11 @@
+on: workflow_dispatch
+jobs:
+  fuckyaml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./build_linux.sh
+      - uses: actions/upload-artifact@v3
+        with:
+          name: jb_linux_amd64
+          path: ./packages/bun-linux-x64/bun
