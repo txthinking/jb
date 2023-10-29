@@ -158,6 +158,14 @@ Exit the script
 exit()
 ```
 
+### `exists()`
+
+file exists or not
+
+```js
+var yn = exists('path/to/file.txt')
+```
+
 ### `read_file()`
 
 Read the text from local file
@@ -249,10 +257,10 @@ Returns the stdin as a string.
 
 ```js
 var s = await stdin()
-echo(`Got ${s} from pipe`);
+echo(`got ${s} from pipe`);
 ```
 ```
-$ echo hello | jb ./script.js
+echo hello | jb ./script.js
 ```
 
 ### `retry()`
@@ -269,20 +277,10 @@ var s = await retry(() => $1`curl https://www.txthinking.com`, 1000)
 var s = await retry(() => $1`curl https://www.txthinking.com`, 1000, 3)
 ```
 
-### `read_url()`
-
-Read the body from http url
-
-```js
-var str = await read_url('https://www.txthinking.com')
-```
-
 ### built-in [Web API](https://developer.mozilla.org/en-US/docs/Web/API) such as [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
 
 ```js
-import os from 'node:os';
-
-echo(os.homedir());
+var res = await fetch('https://www.txthinking.com');
 ```
 
 ### built-in [node](https://nodejs.org/api/)
@@ -297,10 +295,10 @@ echo(os.homedir());
 
 ```js
 Bun.serve({
-    port: 3000,
+    port: 8080,
     hostname: '127.0.0.1',
     fetch(req) {
-        return new Response("Bun!");
+        return new Response("jb!");
     },
 });
 ```

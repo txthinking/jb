@@ -797,7 +797,7 @@ ensure-package-dir:
 .PHONY: prerelease
 prerelease: npm-install api analytics all-js ensure-package-dir
 .PHONY: release-only
-release-only: release-bindings build-obj cls bun-link-lld-release bun-link-lld-release-dsym release-bin-entitlements
+release-only: release-bindings build-obj cls bun-link-lld-release bun-link-lld-release-dsym
 .PHONY: release-safe-only
 release-safe-only: all-js bindings build-obj-safe cls bun-link-lld-release bun-link-lld-release-dsym release-bin-entitlements
 .PHONY: release
