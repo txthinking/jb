@@ -50,6 +50,9 @@ pub fn jb() !bool {
     var got = false;
     while (it.next()) |v| {
         var v1 = std.mem.trim(u8, v, " \n\t\r\n");
+        if (std.mem.startsWith(u8, v1, "#!")) {
+            continue;
+        }
         if (!got and v1.len != 0 and !std.mem.startsWith(u8, v1, "//") and !std.mem.startsWith(u8, v1, "import")) {
             got = true;
             const js = @embedFile("./jb.js");
