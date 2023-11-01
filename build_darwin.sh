@@ -6,8 +6,7 @@ export PATH=$HOME/.nami/bin:$PATH
 nami install 7z
 nami install bun
 nami install jb
-nami install zigup
-zigup 0.12.0-dev.899+027aabf49
+nami install zig
 
 brew install llvm@16
 export PATH="$PATH:$(brew --prefix llvm@16)/bin"
