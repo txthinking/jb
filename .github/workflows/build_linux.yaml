@@ -8,4 +8,4 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: jb_linux_amd64
-          path: ./packages/bun-linux-x64/bun
+          path: ./build-release/bun

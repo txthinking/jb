@@ -73,9 +73,10 @@ pub fn fetch(allocator: std.mem.Allocator, url: []const u8, b: []u8) !usize {
         const uri = try std.Uri.parse(url);
         var client: std.http.Client = .{ .allocator = allocator };
         defer client.deinit();
-        var req = try client.request(.GET, uri, .{ .allocator = allocator }, .{});
+        try client.loadDefaultProxies();
+        var req = try client.open(.GET, uri, .{ .allocator = allocator }, .{});
         defer req.deinit();
-        try req.start(.{});
+        try req.send(.{});
         try req.wait();
         if (req.response.status != std.http.Status.ok) {
             return error.ResponseNotStatusOk;
