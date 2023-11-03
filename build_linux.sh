@@ -11,17 +11,12 @@ nami install node
 
 wget https://apt.llvm.org/llvm.sh -O - | sudo bash -s -- 16 all
 
-sudo apt install cargo ccache cmake git golang libtool ninja-build pkg-config rustc -y
+sudo apt install cargo ccache cmake git golang libtool ninja-build pkg-config rustc ruby-full -y
 
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 sudo apt install gcc-11 g++-11 -y
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100
 sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 100
-
-if [ $(uname -m) = "aarch64" ]; then
-    sed -i '162c\require("child_process").execSync(`mkdir -p ${path.dirname(outputPath)}`)' ./src/js/_codegen/build-modules.ts
-    sed -i '258c\require("child_process").execSync(`mkdir -p ${path.dirname(outputPath)}`)' ./src/js/_codegen/build-modules.ts
-fi
 
 bun setup
 bun run build:release
