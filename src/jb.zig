@@ -23,7 +23,7 @@ pub fn jb() !bool {
         \\$ jb https://example.com/file.js
         \\$ jb '$`ls -l`'
         \\
-        \\v20231101
+        \\v20231103
         \\
         \\https://github.com/txthinking/jb
         \\

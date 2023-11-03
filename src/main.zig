@@ -27,8 +27,8 @@ pub fn main() void {
     var s1 = s.*;
     var s2: [*:0]u8 = &s1;
     std.os.argv[1] = s2;
-    var IDoNotLikeMultipleBehaviors: usize = 0;
-    var a = std.os.argv[IDoNotLikeMultipleBehaviors..2];
+    var zero: usize = 0;
+    var a = std.os.argv[zero..];
     bun.setArgv(a);
     const Output = bun.Output;
     const Environment = bun.Environment;
