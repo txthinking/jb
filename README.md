@@ -158,12 +158,12 @@ Exit the script
 exit()
 ```
 
-### `exists()`
+### `exists_file()`
 
 file exists or not
 
 ```js
-var yn = exists('path/to/file.txt')
+var yn = exists_file('path/to/file.txt')
 ```
 
 ### `read_file()`

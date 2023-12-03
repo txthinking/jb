@@ -1,17 +1,6 @@
 const std = @import("std");
 
-pub fn jb() !bool {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer {
-        switch (gpa.deinit()) {
-            .leak => {
-                std.debug.print("memory leak\n", .{});
-                std.process.exit(1);
-            },
-            .ok => {},
-        }
-    }
-    const allocator = gpa.allocator();
+pub fn jb(allocator: std.mem.Allocator, name: []u8) !bool {
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
     const stdout = std.io.getStdOut().writer();
@@ -23,7 +12,7 @@ pub fn jb() !bool {
         \\$ jb https://example.com/file.js
         \\$ jb '$`ls -l`'
         \\
-        \\v20231103
+        \\v20231203
         \\
         \\https://github.com/txthinking/jb
         \\
@@ -39,7 +28,7 @@ pub fn jb() !bool {
         return false;
     }
 
-    var f = try std.fs.createFileAbsolute("/tmp/_.js", .{ .truncate = true });
+    var f = try std.fs.createFileAbsolute(name, .{ .truncate = true });
     defer f.close();
 
     var b = try allocator.alloc(u8, 1024 * 1024);
@@ -104,8 +93,10 @@ pub fn fetch(allocator: std.mem.Allocator, url: []const u8, b: []u8) !usize {
 }
 
 test "simple test" {
-    var a = blk: {
-        break :blk "hello";
-    };
-    std.debug.print("{s}\n", .{a});
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+    var b = try allocator.alloc(u8, 10);
+    defer allocator.free(b);
+    std.debug.print("{b}\n", .{b});
 }

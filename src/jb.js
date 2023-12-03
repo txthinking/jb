@@ -4,7 +4,6 @@ import jb_path from 'node:path';
 import jb_fs from 'node:fs';
 
 var jb_cwd = process.cwd();
-var jb_env = {};
 global.echo = console.log;
 global.question = prompt;
 global.sleep = Bun.sleepSync;
@@ -14,11 +13,7 @@ global.now = () => {
     return parseInt(Date.now() / 1000);
 };
 global.env = (k, v) => {
-    if (typeof k == 'string') {
-        jb_env[k] = v;
-        return
-    }
-    jb_env = { ...jb_env, ...k };
+    process.env[k] = v
 };
 global.cd = (dir) => {
     if (jb_path.isAbsolute(dir)) {
@@ -32,7 +27,6 @@ global.$ = (first) => {
     echo(cmd);
     var p = Bun.spawnSync(["sh", "-c", cmd], {
         cwd: jb_cwd,
-        env: { ...process.env, ...jb_env },
         stdin: null,
         stdout: Bun.stdout,
         stderr: Bun.stderr,
@@ -45,7 +39,6 @@ global.$1 = (first) => {
     var cmd = first instanceof Array ? first[0] : first;
     var p = Bun.spawnSync(["sh", "-c", cmd], {
         cwd: jb_cwd,
-        env: { ...process.env, ...jb_env },
         stdin: null,
         stdout: 'pipe',
         stderr: Bun.stderr,
@@ -100,7 +93,7 @@ global.cp = (from, a, b) => {
         $(`cp "/tmp/_/${v}" "${a[v]}"`)
     });
 };
-global.exists = (file) => {
+global.exists_file = (file) => {
     return jb_fs.existsSync(file);
 };
 global.read_file = (file) => {
@@ -161,6 +154,9 @@ global.retry = async (f, delay, times) => {
 
 // deprecated
 
+global.exists = (file) => {
+    return jb_fs.existsSync(file);
+};
 global.readfile = async (file) => {
     return await Bun.file(file).text();
 };
