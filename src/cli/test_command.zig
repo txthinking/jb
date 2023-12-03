@@ -35,14 +35,14 @@ var path_buf: [bun.MAX_PATH_BYTES]u8 = undefined;
 var path_buf2: [bun.MAX_PATH_BYTES]u8 = undefined;
 const PathString = bun.PathString;
 const is_bindgen = std.meta.globalOption("bindgen", bool) orelse false;
-const HTTPThread = @import("root").bun.HTTP.HTTPThread;
+const HTTPThread = @import("root").bun.http.HTTPThread;
 
 const JSC = @import("root").bun.JSC;
 const jest = JSC.Jest;
 const TestRunner = JSC.Jest.TestRunner;
 const Snapshots = JSC.Snapshot.Snapshots;
 const Test = TestRunner.Test;
-const NetworkThread = @import("root").bun.HTTP.NetworkThread;
+const NetworkThread = @import("root").bun.http.NetworkThread;
 const uws = @import("root").bun.uws;
 
 fn fmtStatusTextLine(comptime status: @Type(.EnumLiteral), comptime emoji: bool) []const u8 {
@@ -935,7 +935,7 @@ pub const TestCommand = struct {
             }
             Output.flush();
 
-            var promise = try vm.loadEntryPoint(file_path);
+            var promise = try vm.loadEntryPointForTestRunner(file_path);
             reporter.summary.files += 1;
 
             switch (promise.status(vm.global.vm())) {
@@ -969,7 +969,7 @@ pub const TestCommand = struct {
             const file_end = reporter.jest.files.len;
 
             for (file_start..file_end) |module_id| {
-                const module = reporter.jest.files.items(.module_scope)[module_id];
+                const module: *jest.DescribeScope = reporter.jest.files.items(.module_scope)[module_id];
 
                 vm.onUnhandledRejectionCtx = null;
                 vm.onUnhandledRejection = jest.TestRunnerTask.onUnhandledRejection;

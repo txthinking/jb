@@ -2,21 +2,35 @@
 
 ### System Dependencies
 
-- [Visual Studio](https://visualstudio.microsoft.com) with the "Desktop development with C++" workload. You should install Git and CMake from here, if not already installed.
+- [Visual Studio](https://visualstudio.microsoft.com) with the "Desktop Development with C++" workload. You should install Git and CMake from here, if not already installed.
 - Ninja
 - Go
 - Rust
 - NASM
 - Perl
-  - Do not use Strawberry Perl, it includes tools from MSys2 which will break your build.
 - Ruby
+- Node.js (until bun runs stably on windows)
+
+<!--
+TODO: missing the rest of the things
+```
+winget install OpenJS.NodeJS.LTS
+``` -->
+
+### Enable Scripts
+
+By default, scripts are blocked.
+
+```ps1
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted
+```
 
 ### Zig
 
 Bun pins a version of Zig. As the compiler is still in development, breaking changes happen often that will break the build. It is recommended to use [Zigup](https://github.com/marler8997/zigup/releases) as it can quickly switch to any version by name, but you can also [manually download Zig](https://ziglang.org/download/).
 
 ```bash
-$ zigup 0.12.0-dev.1297+a9e66ed73
+$ zigup 0.12.0-dev.1604+caae40c21
 ```
 
 {% callout %}

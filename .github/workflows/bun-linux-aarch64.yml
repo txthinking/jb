@@ -12,6 +12,18 @@ on:
       - "src/**/*"
       - "test/**/*"
       - "packages/bun-usockets/src/**/*"
+      - "CMakeLists.txt"
+      - "build.zig"
+      - "Makefile"
+      - "Dockerfile"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/**/*"
+      - "test/**/*"
+      - "packages/bun-usockets/src/**/*"
+      - "CMakeLists.txt"
       - "build.zig"
       - "Makefile"
       - "Dockerfile"

@@ -10,6 +10,7 @@ const WebCore = JSC.WebCore;
 const Bun = JSC.API.Bun;
 const TaggedPointerUnion = @import("../tagged_pointer.zig").TaggedPointerUnion;
 const typeBaseName = @import("../meta.zig").typeBaseName;
+const AsyncGlobWalkTask = JSC.API.Glob.WalkTask.AsyncGlobWalkTask;
 const CopyFilePromiseTask = WebCore.Blob.Store.CopyFile.CopyFilePromiseTask;
 const AsyncTransformTask = JSC.API.JSTranspiler.TransformTask.AsyncTransformTask;
 const ReadFileTask = WebCore.Blob.Store.ReadFile.ReadFileTask;
@@ -20,7 +21,7 @@ const JSValue = JSC.JSValue;
 const js = JSC.C;
 pub const WorkPool = @import("../work_pool.zig").WorkPool;
 pub const WorkPoolTask = @import("../work_pool.zig").Task;
-const NetworkThread = @import("root").bun.HTTP.NetworkThread;
+const NetworkThread = @import("root").bun.http.NetworkThread;
 const uws = @import("root").bun.uws;
 const Async = bun.Async;
 
@@ -316,6 +317,7 @@ const Write = JSC.Node.Async.write;
 const Truncate = JSC.Node.Async.truncate;
 const FTruncate = JSC.Node.Async.ftruncate;
 const Readdir = JSC.Node.Async.readdir;
+const ReaddirRecursive = JSC.Node.Async.readdir_recursive;
 const Readv = JSC.Node.Async.readv;
 const Writev = JSC.Node.Async.writev;
 const Close = JSC.Node.Async.close;
@@ -347,6 +349,7 @@ const WaitPidResultTask = JSC.Subprocess.WaiterThread.WaitPidResultTask;
 // Task.get(ReadFileTask) -> ?ReadFileTask
 pub const Task = TaggedPointerUnion(.{
     FetchTasklet,
+    AsyncGlobWalkTask,
     AsyncTransformTask,
     ReadFileTask,
     CopyFilePromiseTask,
@@ -373,6 +376,7 @@ pub const Task = TaggedPointerUnion(.{
     Truncate,
     FTruncate,
     Readdir,
+    ReaddirRecursive,
     Close,
     Rm,
     Rmdir,
@@ -641,6 +645,7 @@ pub const EventLoop = struct {
     extern fn JSC__JSGlobalObject__drainMicrotasks(*JSC.JSGlobalObject) void;
     fn drainMicrotasksWithGlobal(this: *EventLoop, globalObject: *JSC.JSGlobalObject) void {
         JSC.markBinding(@src());
+
         JSC__JSGlobalObject__drainMicrotasks(globalObject);
         this.drainDeferredTasks();
     }
@@ -687,6 +692,11 @@ pub const EventLoop = struct {
                 .FetchTasklet => {
                     var fetch_task: *Fetch.FetchTasklet = task.get(Fetch.FetchTasklet).?;
                     fetch_task.onProgressUpdate();
+                },
+                @field(Task.Tag, @typeName(AsyncGlobWalkTask)) => {
+                    var globWalkTask: *AsyncGlobWalkTask = task.get(AsyncGlobWalkTask).?;
+                    globWalkTask.*.runFromJS();
+                    globWalkTask.deinit();
                 },
                 @field(Task.Tag, @typeName(AsyncTransformTask)) => {
                     var transform_task: *AsyncTransformTask = task.get(AsyncTransformTask).?;
@@ -811,6 +821,10 @@ pub const EventLoop = struct {
                 },
                 @field(Task.Tag, typeBaseName(@typeName(Readdir))) => {
                     var any: *Readdir = task.get(Readdir).?;
+                    any.runFromJSThread();
+                },
+                @field(Task.Tag, typeBaseName(@typeName(ReaddirRecursive))) => {
+                    var any: *ReaddirRecursive = task.get(ReaddirRecursive).?;
                     any.runFromJSThread();
                 },
                 @field(Task.Tag, typeBaseName(@typeName(Close))) => {
@@ -1015,11 +1029,12 @@ pub const EventLoop = struct {
         if (loop.isActive()) {
             this.processGCTimer();
             loop.tick();
-            this.flushImmediateQueue();
-            ctx.onAfterEventLoop();
         } else {
-            this.flushImmediateQueue();
+            loop.tickWithoutIdle();
         }
+
+        this.flushImmediateQueue();
+        ctx.onAfterEventLoop();
     }
 
     pub fn autoTickWithTimeout(this: *EventLoop, timeoutMs: i64) void {
@@ -1046,11 +1061,12 @@ pub const EventLoop = struct {
         if (loop.isActive()) {
             this.processGCTimer();
             loop.tickWithTimeout(timeoutMs);
-            this.flushImmediateQueue();
-            ctx.onAfterEventLoop();
         } else {
-            this.flushImmediateQueue();
+            loop.tickWithoutIdle();
         }
+
+        this.flushImmediateQueue();
+        ctx.onAfterEventLoop();
     }
 
     pub fn flushImmediateQueue(this: *EventLoop) void {
@@ -1121,11 +1137,12 @@ pub const EventLoop = struct {
         if (loop.isActive()) {
             this.processGCTimer();
             loop.tick();
-            this.flushImmediateQueue();
-            ctx.onAfterEventLoop();
         } else {
-            this.flushImmediateQueue();
+            loop.tickWithoutIdle();
         }
+
+        this.flushImmediateQueue();
+        ctx.onAfterEventLoop();
     }
 
     pub fn processGCTimer(this: *EventLoop) void {
@@ -1168,6 +1185,22 @@ pub const EventLoop = struct {
                     this.tick();
 
                     if (promise.status(this.virtual_machine.jsc) == .Pending) {
+                        this.autoTick();
+                    }
+                }
+            },
+            else => {},
+        }
+    }
+
+    pub fn waitForPromiseWithTermination(this: *EventLoop, promise: JSC.AnyPromise) void {
+        var worker = this.virtual_machine.worker orelse @panic("EventLoop.waitForPromiseWithTermination: worker is not initialized");
+        switch (promise.status(this.virtual_machine.jsc)) {
+            JSC.JSPromise.Status.Pending => {
+                while (!worker.requested_terminate and promise.status(this.virtual_machine.jsc) == .Pending) {
+                    this.tick();
+
+                    if (!worker.requested_terminate and promise.status(this.virtual_machine.jsc) == .Pending) {
                         this.autoTick();
                     }
                 }
@@ -1266,6 +1299,11 @@ pub const EventLoop = struct {
     }
     pub fn enqueueTaskConcurrent(this: *EventLoop, task: *ConcurrentTask) void {
         JSC.markBinding(@src());
+        if (comptime Environment.allow_assert) {
+            if (this.virtual_machine.has_terminated) {
+                @panic("EventLoop.enqueueTaskConcurrent: VM has terminated");
+            }
+        }
 
         this.concurrent_tasks.push(task);
         this.wakeup();

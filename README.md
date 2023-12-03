@@ -48,6 +48,7 @@ Or executes remote script
 jb https://www.txthinking.com/script.js
 ```
 
+<<<<<<< HEAD
 All functions (`$`, `cd`, `fetch`, etc) are available straight away without any imports.
 
 ### ``$`command` ``

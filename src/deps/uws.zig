@@ -298,6 +298,22 @@ pub fn NewSocketHandler(comptime is_ssl: bool) type {
                 this.socket,
             ) > 0;
         }
+
+        pub fn isClosedOrHasError(this: ThisSocket) bool {
+            if (this.isClosed() or this.isShutdown()) {
+                return true;
+            }
+
+            return this.getError() != 0;
+        }
+
+        pub fn getError(this: ThisSocket) i32 {
+            return us_socket_get_error(
+                comptime ssl_int,
+                this.socket,
+            );
+        }
+
         pub fn isClosed(this: ThisSocket) bool {
             return us_socket_is_closed(
                 comptime ssl_int,
@@ -910,6 +926,16 @@ pub const PosixLoop = extern struct {
         return this.active > 0;
     }
 
+    // This exists as a method so that we can stick a debugger in here
+    pub fn addActive(this: *PosixLoop, value: u32) void {
+        this.active +|= value;
+    }
+
+    // This exists as a method so that we can stick a debugger in here
+    pub fn subActive(this: *PosixLoop, value: u32) void {
+        this.active -|= value;
+    }
+
     pub fn unrefCount(this: *PosixLoop, count: i32) void {
         log("unref x {d}", .{count});
         this.num_polls -|= count;
@@ -938,6 +964,10 @@ pub const PosixLoop = extern struct {
 
     pub fn tick(this: *PosixLoop) void {
         us_loop_run_bun_tick(this, 0);
+    }
+
+    pub fn tickWithoutIdle(this: *PosixLoop) void {
+        us_loop_run_bun_tick(this, std.math.maxInt(i64));
     }
 
     pub fn tickWithTimeout(this: *PosixLoop, timeoutMs: i64) void {
@@ -2416,6 +2446,10 @@ pub const UVLoop = extern struct {
         us_loop_run(this);
     }
 
+    pub fn tickWithoutIdle(this: *UVLoop) void {
+        us_loop_pump(this);
+    }
+
     pub fn create(comptime Handler: anytype) *UVLoop {
         return us_create_loop(
             null,
@@ -2481,6 +2515,7 @@ extern fn us_create_loop(
 extern fn us_loop_free(loop: ?*Loop) void;
 extern fn us_loop_ext(loop: ?*Loop) ?*anyopaque;
 extern fn us_loop_run(loop: ?*Loop) void;
+extern fn us_loop_pump(loop: ?*Loop) void;
 extern fn us_wakeup_loop(loop: ?*Loop) void;
 extern fn us_loop_integrate(loop: ?*Loop) void;
 extern fn us_loop_iteration_number(loop: ?*Loop) c_longlong;
@@ -2511,3 +2546,5 @@ pub fn newSocketFromFd(ctx: *SocketContext, ext_size: c_int, fd: LIBUS_SOCKET_DE
         .socket = us_socket_from_fd(ctx, ext_size, fd) orelse return null,
     };
 }
+
+extern fn us_socket_get_error(ssl_flag: c_int, socket: *Socket) c_int;

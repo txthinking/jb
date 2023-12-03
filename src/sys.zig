@@ -281,7 +281,7 @@ pub fn getErrno(rc: anytype) bun.C.E {
         return bun.C.E.UNKNOWN;
     }
 
-    if (comptime use_libc) return std.os.errno(rc);
+    if (comptime Environment.isMac) return std.os.errno(rc);
     const Type = @TypeOf(rc);
 
     return switch (Type) {
@@ -407,7 +407,7 @@ pub noinline fn openDirAtWindowsA(
     var wbuf: bun.MAX_WPATH = undefined;
     return openDirAtWindows(dirFd, bun.strings.toNTDir(&wbuf, path), iterable, no_follow);
 }
-pub fn openatWindows(dirfD: bun.FileDescriptor, path: []const u16, flags: bun.Mode) Maybe(bun.FileDescriptor) {
+pub fn openatWindows(dirfD: bun.FileDescriptor, path_: []const u16, flags: bun.Mode) Maybe(bun.FileDescriptor) {
     const nonblock = flags & O.NONBLOCK != 0;
 
     var access_mask: w.ULONG = w.READ_CONTROL | w.FILE_WRITE_ATTRIBUTES | w.SYNCHRONIZE;
@@ -422,6 +422,8 @@ pub fn openatWindows(dirfD: bun.FileDescriptor, path: []const u16, flags: bun.Mo
     }
 
     var result: windows.HANDLE = undefined;
+
+    const path = if (bun.strings.hasPrefixComptimeUTF16(path_, ".\\")) path_[2..] else path_;
 
     const path_len_bytes = std.math.cast(u16, path.len * 2) orelse return .{
         .err = .{
@@ -1011,6 +1013,17 @@ pub fn rename(from: [:0]const u8, to: [:0]const u8) Maybe(void) {
     unreachable;
 }
 
+pub fn renameat(from_dir: bun.FileDescriptor, from: [:0]const u8, to_dir: bun.FileDescriptor, to: [:0]const u8) Maybe(void) {
+    while (true) {
+        if (Maybe(void).errnoSys(sys.renameat(from_dir, from, to_dir, to), .rename)) |err| {
+            if (err.getErrno() == .INTR) continue;
+            return err;
+        }
+        return Maybe(void).success;
+    }
+    unreachable;
+}
+
 pub fn chown(path: [:0]const u8, uid: os.uid_t, gid: os.gid_t) Maybe(void) {
     while (true) {
         if (Maybe(void).errnoSys(C.chown(path, uid, gid), .chown)) |err| {
@@ -1075,6 +1088,28 @@ pub fn fcopyfile(fd_in: std.os.fd_t, fd_out: std.os.fd_t, flags: u32) Maybe(void
 pub fn unlink(from: [:0]const u8) Maybe(void) {
     while (true) {
         if (Maybe(void).errnoSys(sys.unlink(from), .unlink)) |err| {
+            if (err.getErrno() == .INTR) continue;
+            return err;
+        }
+        return Maybe(void).success;
+    }
+    unreachable;
+}
+
+pub fn rmdirat(dirfd: bun.FileDescriptor, to: anytype) Maybe(void) {
+    while (true) {
+        if (Maybe(void).errnoSys(sys.unlinkat(dirfd, to, 1), .unlink)) |err| {
+            if (err.getErrno() == .INTR) continue;
+            return err;
+        }
+        return Maybe(void).success;
+    }
+    unreachable;
+}
+
+pub fn unlinkat(dirfd: bun.FileDescriptor, to: anytype) Maybe(void) {
+    while (true) {
+        if (Maybe(void).errnoSys(sys.unlinkat(dirfd, to, 0), .unlink)) |err| {
             if (err.getErrno() == .INTR) continue;
             return err;
         }
@@ -1380,11 +1415,7 @@ pub fn existsOSPath(path: bun.OSPathSlice) bool {
     }
 
     if (comptime Environment.isWindows) {
-        const rc = kernel32.GetFileAttributesW(path) != windows.INVALID_FILE_ATTRIBUTES;
-        if (rc == windows.FALSE) {
-            return false;
-        }
-        return true;
+        return kernel32.GetFileAttributesW(path.ptr) != windows.INVALID_FILE_ATTRIBUTES;
     }
 
     @compileError("TODO: existsOSPath");
@@ -1398,27 +1429,26 @@ pub fn exists(path: []const u8) bool {
     if (comptime Environment.isWindows) {
         var wbuf: bun.MAX_WPATH = undefined;
         const path_to_use = bun.strings.toWPath(&wbuf, path);
-        return kernel32.GetFileAttributesW(path_to_use.ptr) != os.windows.INVALID_FILE_ATTRIBUTES;
+        return kernel32.GetFileAttributesW(path_to_use.ptr) != windows.INVALID_FILE_ATTRIBUTES;
     }
 
     @compileError("TODO: existsOSPath");
 }
 
+pub extern "C" fn is_executable_file(path: [*:0]const u8) bool;
+
 pub fn isExecutableFileOSPath(path: bun.OSPathSlice) bool {
     if (comptime Environment.isPosix) {
-        return bun.is_executable_fileZ(path);
+        return is_executable_file(path);
     }
 
     if (comptime Environment.isWindows) {
-        var out: windows.DWORD = 8;
+        var out: windows.DWORD = 0;
         const rc = kernel32.GetBinaryTypeW(path, &out);
-        log("GetBinaryTypeW({}) = {d}", .{ bun.strings.fmtUTF16(path), out });
 
-        if (rc == windows.FALSE) {
-            return false;
-        }
-
-        return switch (out) {
+        const result = if (rc == windows.FALSE)
+            false
+        else switch (out) {
             kernel32.SCS_32BIT_BINARY,
             kernel32.SCS_64BIT_BINARY,
             kernel32.SCS_DOS_BINARY,
@@ -1428,6 +1458,10 @@ pub fn isExecutableFileOSPath(path: bun.OSPathSlice) bool {
             => true,
             else => false,
         };
+
+        log("GetBinaryTypeW({}) = {d}. isExecutable={}", .{ bun.strings.fmtUTF16(path), out, result });
+
+        return result;
     }
 
     @compileError("TODO: isExecutablePath");
@@ -1437,9 +1471,9 @@ pub fn isExecutableFilePath(path: anytype) bool {
     const Type = @TypeOf(path);
     if (comptime Environment.isPosix) {
         switch (Type) {
-            *[*:0]const u8, *[*:0]u8, [*:0]const u8, [*:0]u8 => return bun.is_executable_fileZ(path),
-            [:0]const u8, [:0]u8 => return bun.is_executable_fileZ(path.ptr),
-            []const u8, []u8 => return bun.is_executable_fileZ(
+            *[*:0]const u8, *[*:0]u8, [*:0]const u8, [*:0]u8 => return is_executable_file(path),
+            [:0]const u8, [:0]u8 => return is_executable_file(path.ptr),
+            []const u8, []u8 => return is_executable_file(
                 &(std.os.toPosixPath(path) catch return false),
             ),
             else => @compileError("TODO: isExecutableFilePath"),
@@ -1534,5 +1568,26 @@ pub fn linkat(dir_fd: bun.FileDescriptor, basename: []const u8, dest_dir_fd: bun
         ),
         .link,
         basename,
+    ) orelse Maybe(void).success;
+}
+
+pub fn linkatTmpfile(tmpfd: bun.FileDescriptor, dirfd: bun.FileDescriptor, name: [:0]const u8) Maybe(void) {
+    if (comptime !Environment.isLinux) {
+        @compileError("Linux only.");
+    }
+
+    if (comptime Environment.allow_assert)
+        std.debug.assert(!std.fs.path.isAbsolute(name)); // absolute path will get ignored.
+
+    return Maybe(void).errnoSysP(
+        std.os.linux.linkat(
+            bun.fdcast(tmpfd),
+            "",
+            dirfd,
+            name,
+            os.AT.EMPTY_PATH,
+        ),
+        .link,
+        name,
     ) orelse Maybe(void).success;
 }
