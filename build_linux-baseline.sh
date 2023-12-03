@@ -3,19 +3,9 @@
 curl https://bash.ooo/nami.sh | bash
 export PATH=$HOME/.nami/bin:$PATH
 
-nami install jb 7z bun zig go cmake ninja
+export CPU_TARGET=nehalem
 
-if [ $(uname -m) = "aarch64" ]; then
-    sudo apt update
-    sudo apt install gcc g++ -y
-    dir=`pwd`
-    cd /tmp/
-    git clone https://github.com/ninja-build/ninja
-    cd ninja
-    ./configure.py --bootstrap
-    mv ninja $HOME/.nami/bin/
-    cd $dir
-fi
+nami install jb 7z bun zig go cmake ninja
 
 wget https://apt.llvm.org/llvm.sh -O - | sudo bash -s -- 16 all
 
