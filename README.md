@@ -48,7 +48,6 @@ Or executes remote script
 jb https://www.txthinking.com/script.js
 ```
 
-<<<<<<< HEAD
 All functions (`$`, `cd`, `fetch`, etc) are available straight away without any imports.
 
 ### ``$`command` ``
@@ -278,6 +277,8 @@ var s = await retry(() => $1`curl https://www.txthinking.com`, 1000)
 var s = await retry(() => $1`curl https://www.txthinking.com`, 1000, 3)
 ```
 
+## Web, Node, Bun
+
 ### built-in [Web API](https://developer.mozilla.org/en-US/docs/Web/API) such as [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
 
 ```js
@@ -304,7 +305,7 @@ Bun.serve({
 });
 ```
 
-### Executing commands on remote hosts
+## Executing commands on remote hosts
 
 The `jb` uses [sshexec](https://github.com/txthinking/sshexec) to execute commands on remote hosts.
 
