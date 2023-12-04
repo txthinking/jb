@@ -36,20 +36,20 @@ pub fn jb(allocator: std.mem.Allocator, name: []u8) !bool {
     const n = try fetch(allocator, arg, b);
     var it = std.mem.splitScalar(u8, b[0..n], '\n');
 
-    var got = false;
+    var wrote = false;
     while (it.next()) |v| {
-        var v1 = std.mem.trim(u8, v, " \n\t\r\n");
+        var v1 = std.mem.trim(u8, v, " \t\r");
         if (std.mem.startsWith(u8, v1, "#!")) {
             continue;
         }
-        if (!got and v1.len != 0 and !std.mem.startsWith(u8, v1, "//") and !std.mem.startsWith(u8, v1, "import")) {
-            got = true;
+        if (!wrote and std.mem.startsWith(u8, v1, "/*")) {
+            return error.DoNotUseBlockCommentsOnJSFile;
+        }
+        if (!wrote and v1.len != 0 and !std.mem.startsWith(u8, v1, "//") and !std.mem.startsWith(u8, v1, "import")) {
             const js = @embedFile("./jb.js");
             _ = try f.write(js);
             _ = try f.write("\n");
-        }
-        if (!got and std.mem.startsWith(u8, v1, "/*")) {
-            return error.DoNotUseBlockCommentsOnJSFile;
+            wrote = true;
         }
         _ = try f.write(v);
         _ = try f.write("\n");

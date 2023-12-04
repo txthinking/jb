@@ -5,7 +5,6 @@ import jb_fs from 'node:fs';
 
 var jb_cwd = process.cwd();
 global.echo = console.log;
-global.question = prompt;
 global.sleep = Bun.sleepSync;
 global.which = Bun.which;
 global.exit = process.exit;
@@ -105,16 +104,29 @@ global.write_file = (file, text) => {
 global.append_file = (file, text) => {
     return jb_fs.writeFileSync(file, text, { encoding: "utf8", flag: 'a' });
 };
+global.question = function(q, v) {
+    if (!v) {
+        return prompt(q);
+    }
+    for (; ;) {
+        var s = prompt(q);
+        if (!s) {
+            continue;
+        }
+        if (typeof v === "function") {
+            if (v(s)) {
+                return s;
+            }
+            continue;
+        }
+        if (v.test(s)) {
+            return s;
+        }
+    }
+}
 
 // async
 
-global.read_url = async (url) => {
-    var res = await fetch(url);
-    if (!res.ok) {
-        throw res.status + ": " + (await res.text());
-    }
-    return await res.text();
-};
 global.stdin = async () => {
     var reader = (await Bun.stdin.stream()).getReader();
     var l = [];
@@ -151,6 +163,40 @@ global.retry = async (f, delay, times) => {
         }
     }
 };
+global.select = async function(question, anwseraction) {
+    for (; ;) {
+        var i = prompt(anwseraction.map((v, i) => `${i + 1}: ${v.anwser}`).join("\n") + `\n${question}`);
+        i = parseInt(i);
+        if (isNaN(i) || i < 1 || i > anwseraction.length) {
+            continue;
+        }
+        break;
+    }
+    await anwseraction[i - 1].action();
+}
+
+// new
+
+// async lock, js lock, js mutex, js sync, js queue
+// var sync = new Sync();
+// await sync.atomic(async () => {});
+global.Sync = function() {
+    var p = Promise.resolve();
+    this.atomic = (f) => {
+        p = new Promise((resolve, reject) => {
+            p.then(() => {
+                f()
+                    .then((v) => resolve(v))
+                    .catch((v) => reject(v));
+            }).catch((e) => {
+                f()
+                    .then((v) => resolve(v))
+                    .catch((v) => reject(v));
+            });
+        });
+        return p;
+    };
+}
 
 // deprecated
 
@@ -167,6 +213,13 @@ global.appendfile = async (file, text) => {
     return await Bun.write(file, (await readfile(file)) + text);
 };
 global.readurl = async (url) => {
+    var res = await fetch(url);
+    if (!res.ok) {
+        throw res.status + ": " + (await res.text());
+    }
+    return await res.text();
+};
+global.read_url = async (url) => {
     var res = await fetch(url);
     if (!res.ok) {
         throw res.status + ": " + (await res.text());
